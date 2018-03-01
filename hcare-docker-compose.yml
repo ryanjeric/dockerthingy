@@ -1,0 +1,101 @@
+version: '2'
+services:
+##############ASK RYANJERIC###############
+### Create folder named "mysql" and copy "dist" folder and "migratesql-docker.sh" on API inside mysql
+### DB : MYSQL to open : sudo docker exec -it mysqlserver bash
+### Migrate SQL : bash migratesql-docker.sh root root sql-commands-only dbhcare
+############################################ 
+  mysql:
+      container_name: mysqlserver
+      image: mysql:latest
+      restart: always
+      environment:
+        - MYSQL_ROOT_PASSWORD=root
+      networks:
+        static-network:
+          ipv4_address: 172.20.128.1
+      volumes:
+        - ./host/dir:/var/lib/mysql
+        - ./mysql:/usr/src
+      command: mysqld --sql_mode=""
+############################################
+### PHPMYADMIN
+############################################ 
+  phpmyadmin:
+      container_name: phpmyadmin
+      image: phpmyadmin/phpmyadmin
+      restart: always
+      environment:
+        - PMA_ARBITRARY=1
+      ports:
+        - '8080:80'
+      networks:
+        static-network:
+          ipv4_address: 172.20.128.2 
+      volumes:
+        - /sessions
+############################################
+### REDIS
+############################################ 
+  redis : 
+      container_name: redis
+      image: redis:latest
+      restart: always
+      ports:
+        - '6379:6379'
+      networks:
+        static-network:
+          ipv4_address: 172.20.128.9
+############################################
+### APP -> API
+############################################ 
+  api:
+      container_name: hcare-api
+      image: medisource/phalcon
+      restart: always
+      ports:
+        - "8082:80"
+      volumes:
+        #SERVER CONFIG
+        - ./conf/nginx:/etc/nginx/conf.d
+        #WEB APP
+        - ./src/hcareapiv1:/app
+        #NGINX LOGS
+        - ./log/api:/var/log/nginx
+      networks:
+        static-network:
+          ipv4_address: 172.20.128.3
+      depends_on:
+       - mysql
+      links:
+         - redis
+############################################
+### APP -> WEB
+############################################
+  site:
+      container_name: hcare-site
+      image: medisource/phalcon
+      restart: always
+      ports:
+        - "8081:80"
+      volumes:
+        #SERVER CONFIG
+        - ./conf/nginx:/etc/nginx/conf.d
+        #WEB APP
+        - ./src/hcarewebv1:/app
+        #NGINX LOGS
+        - ./log/site:/var/log/nginx
+      networks:
+        static-network:
+          ipv4_address: 172.20.128.4
+      depends_on:
+       - api
+############################################
+### SET NETWORK
+############################################   
+networks:
+  static-network:
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+          ip_range: 172.28.5.0/24

@@ -86,6 +86,7 @@ COPY nginx.conf /etc/nginx/nginx.conf
 
 #Add timezone
 COPY /phpini/timezone.ini /usr/local/etc/php/conf.d
+COPY /phpini/errorreporting.ini /usr/local/etc/php/conf.d
 
 EXPOSE 80 443
 
